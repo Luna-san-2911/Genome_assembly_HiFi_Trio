@@ -1,1 +1,60 @@
+#!/bin/bash -l
+#SBATCH -J canu_triobinning
+#SBATCH --output=canu_triobinning-%j.output
+#SBATCH --error=canu_triobinning-%j.error
+#SBATCH -t 240:00:00
+#SBATCH --partition=bmh
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=plunarodriguez@ucdavis.edu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=64
+#SBATCH --mem=100G
+
+set -euo pipefail
+echo "Starting at: $(date)"
+
+# Files and directories
+MAT=/group/gmonroegrp2/chaehee/Pablo/pistacia/HiFi_reads/Patl.fastq.gz
+PAT=/group/gmonroegrp2/chaehee/Pablo/pistacia/HiFi_reads/Pint.fastq.gz
+SAMPLE=/group/gmonroegrp2/chaehee/Pablo/pistacia/HiFi_reads/UCB1.fastq.gz
+
+# Extract sample name from read file
+SAMPLE_NAME=$(basename "$SAMPLE")
+SAMPLE_NAME=${SAMPLE_NAME%.fastq.gz}
+SAMPLE_NAME=${SAMPLE_NAME%.fq.gz}
+SAMPLE_NAME=${SAMPLE_NAME%.fastq}
+SAMPLE_NAME=${SAMPLE_NAME%.fq}
+
+OUT_DIR=/group/gmonroegrp2/chaehee/Pablo/UCB1_hybridization/04_genome_assembly_triobinning
+mkdir -p "$OUT_DIR"
+
+OUT_DIR01="${OUT_DIR}/01_raw_assembly_triobinning"
+mkdir -p "$OUT_DIR01"
+
+CANU_DIR="${OUT_DIR01}/canu_triobinning"
+mkdir -p "$CANU_DIR"
+
+# Activate conda environment
+source /home/plunarod/miniconda3/bin/activate
+conda activate genome_assembly_env
+
+# === Run Canu with trio binning - Simple approach ===
+echo "Running Canu with trio binning..."
+echo "This approach lets Canu handle k-mer counting internally"
+
+canu \
+    -p "${SAMPLE_NAME}" \
+    -d "${CANU_DIR}" \
+    genomeSize=600m \
+    -haplotypePint "$PAT" \
+    -haplotypePatl "$MAT" \
+    -pacbio-hifi "$SAMPLE" \
+    maxThreads=64 \
+    maxMemory=100
+
+echo ""
+echo "Finished at: $(date)"
+echo "Assembly outputs are in: ${CANU_DIR}"
+
 
